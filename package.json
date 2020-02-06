@@ -1,14 +1,46 @@
 {
   "name": "unitpay-api",
-  "version": "1.0.1",
-  "description": "API for UnitPay",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "UnitPay API wrapper for Node.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "lint": "tslint 'src/**/*.ts' -t codeFrame",
+    "test": "mocha -r ts-node/register src/**/*.spec.ts"
   },
   "keywords": [
     "unitpay"
   ],
-  "author": "Reding",
-  "license": "MIT"
+  "homepage": "https://github.com/redinggg/unitpay-api#readme",
+  "bugs": {
+    "url": "https://github.com/redinggg/unitpay-api/issues",
+    "email": "r@reding.ru"
+  },
+  "author": {
+    "name": "Novokshchenov Roman",
+    "email": "ya.metin-4@ya.ru",
+    "url": "http://reding.ru"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/redinggg/unitpay-api"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "qs": "^6.9.1",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.8"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.8",
+    "@types/mocha": "^7.0.1",
+    "@types/node": "^13.7.0",
+    "@types/request-promise-native": "^1.0.17",
+    "chai": "^4.2.0",
+    "mocha": "^7.0.1",
+    "ts-node": "^8.6.2",
+    "tslint": "^6.0.0",
+    "typescript": "^3.7.5"
+  }
 }
