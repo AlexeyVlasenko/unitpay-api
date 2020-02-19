@@ -1,4 +1,4 @@
-import * as crypto from 'crypto'
+import crypto from 'crypto'
 import request from 'request-promise-native'
 import * as qs from 'qs'
 
@@ -14,6 +14,7 @@ interface Params {
 
 export default class Payment {
   private $secretKey: string
+  private $publicKey: string
   API_URL: string = 'https://unitpay.ru/api'
   FORM_URL: string = 'https://unitpay.ru/pay/'
   private $supportedCurrencies: string[] = ['EUR','UAH', 'BYR', 'USD','RUB']
@@ -35,8 +36,9 @@ export default class Payment {
   ]
   public $supportedPartnerMethods: string[] = ['check', 'pay', 'error']
 
-  constructor(secretKey) {
+  constructor({ secretKey, publicKey }) {
     this.$secretKey = secretKey
+    this.$publicKey = publicKey
   }
 
   // Create signature
@@ -65,7 +67,7 @@ export default class Payment {
 
   // Create form
   public form(
-    params: Params, publicKey: string, currency: string = 'RUB', locale: string = 'ru'
+    params: Params, currency: string = 'RUB', locale: string = 'ru'
   ): string {
 
     if(!this.$secretKey) { throw new Error(`No secret key!`) }
@@ -77,7 +79,7 @@ export default class Payment {
     params.signature = this.getSignature(params)
     params.locale = locale
 
-    return `${ this.FORM_URL + publicKey}?${ qs.stringify(params) }`
+    return `${ this.FORM_URL + this.$publicKey}?${ qs.stringify(params) }`
   }
 
   // call api
