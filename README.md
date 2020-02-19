@@ -44,7 +44,7 @@ const params = {
   purse: '79624594512',
   login: 'r@reding',
   transactionId: '123',
-  paymentType: 'qiwi
+  paymentType: 'qiwi'
 }
 
 const payOut = await pay.api('massPayment', params)
