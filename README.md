@@ -24,7 +24,7 @@ const params = {
   sum: 49000,
 }
 
-const form = pay.form(params)
+const form = payment.form(params)
 
 console.log(form) // returns link
 ```
@@ -47,7 +47,7 @@ const params = {
   paymentType: 'qiwi'
 }
 
-const payOut = await pay.api('massPayment', params)
+const payOut = await payment.api('massPayment', params)
 
 console.log(payOut)
 
