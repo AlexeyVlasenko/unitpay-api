@@ -24,17 +24,22 @@ export default class Payment {
     '52.19.56.234',
     '127.0.0.1' // for debug
   ]
-  private $supportedUnitpayMethods: string[] = ['initPayment', 'getPayment']
+  private $supportedUnitpayMethods: string[] = ['initPayment', 'getPayment', 'getPartner', 'getCommissions', 'massPayment', 'massPaymentStatus']
   private $requiredUnitpayMethodsParams: object[] = [
     { initPayment: ['desc', 'account', 'sum', 'paymentType', 'projectId'] },
-    { getPayment: ['paymentId'] }
+    { getPayment: ['paymentId'] },
+    { getPartner: ['login'] },
+    { getCommissions: ['projectId', 'login'] },
+    { massPayment: ['sum', 'purse', 'login', 'transactionId', 'paymentType'] },
+    { massPaymentStatus: ['login', 'transactionId'] }
   ]
-  private $supportedPartnerMethods: string[] = ['check', 'pay', 'error']
+  public $supportedPartnerMethods: string[] = ['check', 'pay', 'error']
 
   constructor(secretKey) {
     this.$secretKey = secretKey
   }
 
+  // Create signature
   private getSignature(params: Params, method: string = null): string {
     let hashStr: string = `${ params.account }{up}${ params.currency }{up}${ params.desc }{up}${ params.sum }{up}${ this.$secretKey }`
 
@@ -58,7 +63,7 @@ export default class Payment {
     return false
   }
 
-  // Created form
+  // Create form
   public form(
     params: Params, publicKey: string, currency: string = 'RUB', locale: string = 'ru'
   ): string {
@@ -76,7 +81,7 @@ export default class Payment {
   }
 
   // call api
-  public async api(method: string, params: Params): Promise<any> {
+  public async api(method: string, params: any): Promise<any> {
     if(!this.$secretKey) { throw new Error(`No secret key!`) }
     if(!this.$supportedUnitpayMethods.includes(method)) {
       throw new Error(`Method is not supported`)
@@ -100,6 +105,25 @@ export default class Payment {
     })
 
     return response
+  }
+
+  // Response for UnitPay if handle success
+  public getSuccessHandlerResponse(msg: string): object {
+    console.log(msg)
+    return {
+      result: {
+        message: msg
+      }
+    }
+  }
+
+  // Response for UnitPay if handle error
+  public getErrorHandlerResponse(msg: string): object {
+    return {
+      error: {
+        message: msg
+      }
+    }
   }
 
 }
