@@ -42,7 +42,7 @@ console.log(form) // returns link
 ### Using API (https://help.unitpay.ru/)
 ```typescript
 // Getting Payment Information
-const getPayment = await pay.api('getPayment', { paymentId: '1237304731' }
+const getPayment = await pay.api('getPayment', { paymentId: '1237304731' })
 
 console.log(getPayment)
 

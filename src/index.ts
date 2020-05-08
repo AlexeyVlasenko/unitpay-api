@@ -82,7 +82,7 @@ export default class Payment {
   }
 
   // call api
-  public async api(method: string, params: any): Promise<string> {
+  public async api(method: string, params: any): Promise<any> {
     if(!this.$secretKey) throw new Error('No secret key!')
     if(!this.$supportedUnitpayMethods.includes(method)) throw new Error(`Method is not supported`)
 
