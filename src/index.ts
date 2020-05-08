@@ -2,21 +2,20 @@ import crypto from 'crypto'
 import request from 'request-promise-native'
 import * as qs from 'qs'
 
-interface Params {
-  account: string,
-  currency: string,
-  desc: string,
-  sum: number,
-  signature?: string,
-  locale?: string,
-  secretKey?: string
+interface IParams {
+  account: string
+  desc: string
+  sum: number
+  publicKey: string
+  currency?: string
+  locale?: string
+  [key: string]: any
 }
 
 export default class Payment {
   private $secretKey: string
-  private $publicKey: string
-  API_URL: string = 'https://unitpay.ru/api'
-  FORM_URL: string = 'https://unitpay.ru/pay/'
+  private apiUrl: string
+  private formUrl: string
   private $supportedCurrencies: string[] = ['EUR','UAH', 'BYR', 'USD','RUB']
   private $supportedUnitpayIp: string[] = [
     '31.186.100.49',
@@ -25,24 +24,33 @@ export default class Payment {
     '52.19.56.234',
     '127.0.0.1' // for debug
   ]
-  private $supportedUnitpayMethods: string[] = ['initPayment', 'getPayment', 'getPartner', 'getCommissions', 'massPayment', 'massPaymentStatus']
+  private $supportedUnitpayMethods: string[] = [
+    'initPayment',
+    'getPayment',
+    'getPartner',
+    'getCommissions',
+    'massPayment',
+    'massPaymentStatus',
+    'refundPayment'
+  ]
   private $requiredUnitpayMethodsParams: object[] = [
     { initPayment: ['desc', 'account', 'sum', 'paymentType', 'projectId'] },
     { getPayment: ['paymentId'] },
     { getPartner: ['login'] },
     { getCommissions: ['projectId', 'login'] },
     { massPayment: ['sum', 'purse', 'login', 'transactionId', 'paymentType'] },
-    { massPaymentStatus: ['login', 'transactionId'] }
+    { massPaymentStatus: ['login', 'transactionId'] },
+    { refundPayment: ['paymentId'] }
   ]
-  public $supportedPartnerMethods: string[] = ['check', 'pay', 'error']
 
-  constructor({ secretKey, publicKey }) {
+  constructor({ domain = 'unitpay.money', secretKey }) {
     this.$secretKey = secretKey
-    this.$publicKey = publicKey
+    this.apiUrl = `https://${ domain }/api`
+    this.formUrl = `https://${ domain }/pay/`
   }
 
   // Create signature
-  private getSignature(params: Params, method: string = null): string {
+  private getSignature(params: IParams, method: string = null): string {
     let hashStr: string = `${ params.account }{up}${ params.currency }{up}${ params.desc }{up}${ params.sum }{up}${ this.$secretKey }`
 
     if(method) {
@@ -57,37 +65,26 @@ export default class Payment {
   // IP address check
   // link http://help.unitpay.ru/article/67-ip-addresses
   public checkIp(forwardedIp: string): boolean {
-    for(const unitpayIp of this.$supportedUnitpayIp) {
-      if(unitpayIp === forwardedIp) {
-        return true
-      }
-    }
-    return false
+    return this.$supportedUnitpayIp.includes(forwardedIp)
   }
 
   // Create form
-  public form(
-    params: Params, currency: string = 'RUB', locale: string = 'ru'
-  ): string {
+  public form(params: IParams): string {
 
-    if(!this.$secretKey) { throw new Error(`No secret key!`) }
-    if(!this.$supportedCurrencies.findIndex(cur => { return cur === currency })) {
-      throw new Error(`Currency not supported!`)
-    }
+    if(!this.$secretKey) throw new Error('No secret key!')
+    if(!this.$supportedCurrencies.includes(params.currency)) throw new Error('Currency not supported!')
 
-    params.currency = currency
+    params.currency = params.currency ? params.currency : 'RUB'
+    params.locale = params.locale ? params.locale : 'ru'
     params.signature = this.getSignature(params)
-    params.locale = locale
 
-    return `${ this.FORM_URL + this.$publicKey}?${ qs.stringify(params) }`
+    return `${ this.formUrl + params.publicKey}?${ qs.stringify(params) }`
   }
 
   // call api
-  public async api(method: string, params: any): Promise<any> {
-    if(!this.$secretKey) { throw new Error(`No secret key!`) }
-    if(!this.$supportedUnitpayMethods.includes(method)) {
-      throw new Error(`Method is not supported`)
-    }
+  public async api(method: string, params: any): Promise<string> {
+    if(!this.$secretKey) throw new Error('No secret key!')
+    if(!this.$supportedUnitpayMethods.includes(method)) throw new Error(`Method is not supported`)
 
     for (const m of this.$requiredUnitpayMethodsParams) {
       if(m[method]) {
@@ -102,7 +99,7 @@ export default class Payment {
     params.secretKey = this.$secretKey
 
     const response = await request({
-      uri: `${ this.API_URL }?${ qs.stringify({ method: method, params: params }) }`,
+      uri: `${ this.apiUrl }?${ qs.stringify({ method, params }) }`,
       json: true
     })
 
@@ -111,7 +108,6 @@ export default class Payment {
 
   // Response for UnitPay if handle success
   public getSuccessHandlerResponse(msg: string): object {
-    console.log(msg)
     return {
       result: {
         message: msg
