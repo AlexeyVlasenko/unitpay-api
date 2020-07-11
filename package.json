@@ -23,9 +23,6 @@
     "email": "ya.metin-4@ya.ru",
     "url": "http://reding.ru"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/redinggg/unitpay-api"
