@@ -31,7 +31,8 @@ export default class Payment {
     'getCommissions',
     'massPayment',
     'massPaymentStatus',
-    'refundPayment'
+    'refundPayment',
+    'getCurrencyCourses'
   ]
   private requiredUnitpayMethodsParams: object[] = [
     { initPayment: ['desc', 'account', 'sum', 'paymentType', 'projectId'] },
@@ -40,7 +41,8 @@ export default class Payment {
     { getCommissions: ['projectId', 'login'] },
     { massPayment: ['sum', 'purse', 'login', 'transactionId', 'paymentType'] },
     { massPaymentStatus: ['login', 'transactionId'] },
-    { refundPayment: ['paymentId'] }
+    { refundPayment: ['paymentId'] },
+    { getCurrencyCourses: ['login'] }
   ]
 
   constructor({ domain = 'unitpay.money', secretKey }) {
