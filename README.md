@@ -1,9 +1,9 @@
-
 [UnitPay](https://help.unitpay.ru/) API wrapper for Node.js
 
 Documentation https://help.unitpay.ru and https://help.unitpay.money
 
-## Installation 
+## Installation
+
 ```sh
 $ npm install unitpay-api
 ```
@@ -11,55 +11,75 @@ $ npm install unitpay-api
 ## Usage
 
 ### Initialization
+
 ```typescript
-import UnitPay from 'unitpay-api'
+import UnitPay from "unitpay-api";
 
 const payment = new UnitPay({
-  secretKey: 'secretKey',
+  secretKey: "secretKey",
   // Default domain unitpay.money
   // unitpay.money or unitpay.ru
-  domain: 'unitpay.money' 
-})
+  domain: "unitpay.money", // optional
+});
 ```
 
 ### Creating a form for payment
+
 ```typescript
+const publicKey = "123741-712ff";
 const params = {
-  account: 'reding',
-  currency: 'RUB',
-  desc: 'Buying an iPhone 10',
+  account: "reding",
+  desc: "Buying an iPhone 10",
   sum: 49000,
-  publicKey: '32423423-343ff'
-}
-// You can also add any other keys and their values
-// [key: string]: any
+  locale: "ru", // optional
+  backUrl: "https://unitpay.money", // optional
+  currency: "RUB", // optional
+};
 
-const form = payment.form(params)
+const form = payment.form(publicKey, params);
 
-console.log(form) // returns link
+console.log(form); // returns link
 ```
 
 ### Using API (https://help.unitpay.ru/)
+
+#### Create invoice
+
 ```typescript
-// Getting Payment Information
-const getPayment = await pay.api('getPayment', { paymentId: '1237304731' })
+// Create invoice
+const invoice = await payment.initPayment({
+  paymentType: "card",
+  account: "reding",
+  sum: 1,
+  projectId: 12341,
+  desc: "desciprtion",
+});
 
-console.log(getPayment)
+console.log(invoice);
+```
 
-// Create payout
+#### Create payout (only for an individual)
+
+```typescript
 // Secret key must be from profile
+// Only domain unitpay.money
+const payOut = await payment.massPayment({
+  sum: 1,
+  login: "r@reding.ru",
+  purse: "79623044557",
+  paymentType: "mc",
+  transactionId: "randomString",
+  comment: "description", // optional
+});
 
-const params = {
-  sum: 10,
-  purse: '79624594512',
-  login: 'r@reding',
-  transactionId: '123',
-  paymentType: 'qiwi',
-  test: 1 // for test
-}
+console.log(payOut);
+```
 
-const payOut = await payment.api('massPayment', params)
+#### Getting Payment Informations
 
-console.log(payOut)
+```typescript
+// Getting Payment Informations
+const getPayment = await payment.getPayment({ paymentId: "1237304731" });
 
+console.log(getPayment);
 ```

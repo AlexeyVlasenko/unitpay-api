@@ -1,6 +1,6 @@
 {
   "name": "unitpay-api",
-  "version": "2.2.1",
+  "version": "3.0.0",
   "description": "UnitPay API wrapper for Node.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -28,20 +28,19 @@
     "url": "https://github.com/redinggg/unitpay-api"
   },
   "license": "MIT",
-  "dependencies": {
-    "qs": "^6.9.1",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.8"
-  },
   "devDependencies": {
-    "@types/chai": "^4.2.8",
-    "@types/mocha": "^7.0.1",
-    "@types/node": "^13.7.0",
-    "@types/request-promise-native": "^1.0.17",
-    "chai": "^4.2.0",
-    "mocha": "^7.0.1",
-    "ts-node": "^8.6.2",
-    "tslint": "^6.0.0",
-    "typescript": "^3.7.5"
+    "@types/chai": "^4.2.16",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^14.14.37",
+    "@types/qs": "^6.9.6",
+    "chai": "^4.3.4",
+    "mocha": "^8.3.2",
+    "ts-node": "^9.1.1",
+    "tslint": "^6.1.3",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "got": "^11.8.2",
+    "qs": "^6.10.1"
   }
 }

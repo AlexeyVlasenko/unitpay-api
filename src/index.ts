@@ -1,128 +1,277 @@
-import crypto from 'crypto'
-import request from 'request-promise-native'
-import * as qs from 'qs'
+import { stringify } from 'qs'
 
-interface IParams {
-  account: string
-  desc: string
-  sum: number
-  publicKey: string
-  currency?: string
-  locale?: string
-  [key: string]: any
+import UnitpayRequest, { IResponse } from './request'
+import { generateSignature } from './utils'
+
+export interface IConfig {
+  domain: string
+  secretKey: string
 }
 
-export default class Payment {
-  private secretKey: string
-  private apiUrl: string
-  private formUrl: string
-  private supportedCurrencies: string[] = ['EUR','UAH', 'BYR', 'USD','RUB']
-  private supportedUnitpayIp: string[] = [
+type TGetPaymentStatus = 'success' | 'wait' | 'error' | 'error_pay' | 'error_check' | 'refund' | 'secure'
+
+type TPaymentCode = 'mc' | 'card' | 'webmoney' | 'webmoneyWmr' | 'yandex' | 'qiwi' | 'paypal' | 'applepay' | 'samsungpay' | 'googlepay'
+
+type IOperatorCode = 'mts' | 'mf' | 'beeline' | 'tele2'
+
+export interface ICommonResponse {
+  message: string
+}
+
+export interface IGetPaymentRequest {
+  paymentId: number
+}
+
+export interface IGetPaymentResponse {
+  date: string
+  purse: string
+  profit: number
+  status: TGetPaymentStatus
+  account: string
+  payerSum: number
+  orderSum: number
+  paymentId: number
+  projectId: number
+  receiptUrl: string
+  paymentType: TPaymentCode
+  errorMessage: string
+  orderCurrency: string
+  payerCurrency: string
+}
+
+export interface IInitPaymentRequest {
+  sum: number
+  desc: string
+  account: string
+  projectId: number
+  paymentType: TPaymentCode
+  ip?: string
+  local?: string
+  phone?: number
+  backUrl?: string
+  currency?: string
+  preauth?: boolean
+  operator?: IOperatorCode
+  resultUrl?: string
+  signature?: string
+  subscription?: boolean
+  subscriptionId?: number
+  preauthExpireLogic?: number
+}
+
+export interface IInitPaymentResponse {
+  type: string
+  message: string
+  paymentId: number
+  receiptUrl: string
+  response?: string
+  invoiceId?: string
+  redirectUrl?: string
+}
+
+export type TRefundPaymentMethod = 'full_prepayment' | 'prepayment' | 'advance' | 'full_payment'
+
+export interface IRefundPaymentRequest {
+  paymentId: number
+  sum?: number
+  paymentMethod?: TRefundPaymentMethod
+}
+
+export interface IListSubscriptionsRequest {
+  projectId: number
+}
+
+export interface IListSubscriptionsResponse {
+  status: 'new' | 'active' | 'close',
+  totalSum: number
+  startDate: string
+  description: string
+  failPayments: number
+  lastPaymentId: number
+  lastUpdateDate: string
+  subscriptionId: number
+  successPayments: number
+  parentPaymentId: number
+  closeType?: 'api' | 'error' | 'abuse'
+}
+
+export interface IGetSubscriptionRequest{
+  subscriptionId: number
+}
+
+export interface IOffsetAdvanceRequest {
+  login: string
+  paymentId: string
+  cashItems?: string
+}
+
+export interface ICommonPartnerRequest {
+  login: string
+}
+
+export interface IGetCommissionsRequest extends ICommonPartnerRequest {
+  projectId: number
+}
+
+export type IGetCommissionsResponse = {
+  [key in TPaymentCode]: number
+}
+
+export interface IGetCurrencyCoursesResponse {
+  in: {
+    [key: string]: number
+  }
+  out: {
+    [key: string]: number
+  }
+}
+
+export interface IGetBinInfoRequest extends ICommonPartnerRequest {
+  bin: string
+}
+
+export interface IGetBinInfoResponse {
+  bin: string
+  bank: string
+  type: string
+  brand: string
+  bankUrl: string
+  category: string
+  bankPhone: string
+  countryCode: string
+}
+
+export interface IMassPaymentRequest {
+  sum: number
+  login: string
+  purse: string
+  paymentType: TPaymentCode
+  transactionId: string
+  comment?: string
+  projectId?: number
+}
+
+export interface IMassPaymentResponse {
+  sum: number
+  status: 'success' | 'not_completed'
+  message: string
+  payoutId: number
+  createDate: string
+  completeDate: string
+  partnerBalance: number
+  payoutCommission: number
+  partnerCommission: number
+}
+
+export interface IMassPaymentStatusRequest extends ICommonPartnerRequest {
+  transactionId: string
+}
+
+export interface IFormParams {
+  sum: number
+  desc: string
+  account: string
+  locale?: string
+  backUrl?: string
+  currency?: string
+  signature?: string
+}
+
+export default class Unitpay {
+  public readonly supportedUnitpayIp = [
     '31.186.100.49',
     '178.132.203.105',
     '52.29.152.23',
-    '52.19.56.234',
-    '127.0.0.1' // for debug
+    '52.19.56.234'
   ]
-  private supportedUnitpayMethods: string[] = [
-    'initPayment',
-    'getPayment',
-    'getPartner',
-    'getCommissions',
-    'massPayment',
-    'massPaymentStatus',
-    'refundPayment',
-    'getCurrencyCourses'
-  ]
-  private requiredUnitpayMethodsParams: object[] = [
-    { initPayment: ['desc', 'account', 'sum', 'paymentType', 'projectId'] },
-    { getPayment: ['paymentId'] },
-    { getPartner: ['login'] },
-    { getCommissions: ['projectId', 'login'] },
-    { massPayment: ['sum', 'purse', 'login', 'transactionId', 'paymentType'] },
-    { massPaymentStatus: ['login', 'transactionId'] },
-    { refundPayment: ['paymentId'] },
-    { getCurrencyCourses: ['login'] }
-  ]
+  public request: UnitpayRequest
+  private config: IConfig
+  constructor({ domain = 'unitpay.money', secretKey }: IConfig) {
+    this.config = { domain, secretKey }
 
-  constructor({ domain = 'unitpay.money', secretKey }) {
-    this.secretKey = secretKey
-    this.apiUrl = `https://${ domain }/api`
-    this.formUrl = `https://${ domain }/pay/`
+    this.request = new UnitpayRequest(domain, secretKey)
   }
 
-  // Create signature
-  private getSignature(params: IParams, method: string = null): string {
-    let hashStr: string = `${ params.account }{up}${ params.currency }{up}${ params.desc }{up}${ params.sum }{up}${ this.secretKey }`
+  public send(method: string, body: any = {}): Promise<any> {
+    return this.request.send(method, body)
+  }
 
-    if(method) {
-      hashStr = `${ method }{up}` + hashStr
+  public verifyIP(ip: string): boolean {
+    return this.supportedUnitpayIp.includes(ip)
+  }
+
+  public initPayment(body: IInitPaymentRequest): Promise<IResponse<IInitPaymentResponse>> {
+    if(!body.signature) {
+      const signature = generateSignature(body, this.config.secretKey)
+      body.signature = signature
+    }
+    return this.send('initPayment', body)
+  }
+
+  public form(publicKey: string, params: IFormParams): string {
+    if(!publicKey) throw new Error('publicKey mismatch')
+    if(!params.signature) {
+      const signature = generateSignature(params, this.config.secretKey)
+      params.signature = signature
     }
 
-    return crypto.createHash('sha256')
-                 .update(hashStr, 'utf8')
-                 .digest('hex')
+    return `https://${ this.config.domain }/pay/${publicKey}?${stringify(params)}`
   }
 
-  // IP address check
-  // link http://help.unitpay.ru/article/67-ip-addresses
-  public checkIp(forwardedIp: string): boolean {
-    return this.supportedUnitpayIp.includes(forwardedIp)
+  public confirmPayment(body: IGetPaymentRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('confirmPayment', body)
   }
 
-  // Create form
-  public form(params: IParams): string {
-
-    if(!this.secretKey) throw new Error('No secret key!')
-    if(!this.supportedCurrencies.includes(params.currency)) throw new Error('Currency not supported!')
-
-    params.currency = params.currency ? params.currency : 'RUB'
-    params.locale = params.locale ? params.locale : 'ru'
-    params.signature = this.getSignature(params)
-
-    return `${ this.formUrl + params.publicKey }?${ qs.stringify(params) }`
+  public cancelPayment(body: IGetPaymentRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('cancelPayment', body)
   }
 
-  // call api
-  public async api(method: string, params: any): Promise<any> {
-    if(!this.secretKey) throw new Error('No secret key!')
-    if(!this.supportedUnitpayMethods.includes(method)) throw new Error(`Method is not supported`)
-
-    for (const m of this.requiredUnitpayMethodsParams) {
-      if(m[method]) {
-        for(const param of m[method]) {
-          if(!params[param]) {
-            throw new Error(`Param ${ param } is null`)
-          }
-        }
-      }
-    }
-
-    params.secretKey = this.secretKey
-
-    const response = await request({
-      uri: `${ this.apiUrl }?${ qs.stringify({ method, params }) }`,
-      json: true
-    })
-
-    return response
+  public getPayment(body: IGetPaymentRequest): Promise<IResponse<IGetPaymentResponse>> {
+    return this.send('getPayment', body)
   }
 
-  // Response for UnitPay if handle success
-  public getSuccessHandlerResponse(msg: string): object {
-    return {
-      result: {
-        message: msg
-      }
-    }
+  public refundPayment(body: IRefundPaymentRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('refundPayment', body)
   }
 
-  // Response for UnitPay if handle error
-  public getErrorHandlerResponse(msg: string): object {
-    return {
-      error: {
-        message: msg
-      }
-    }
+  public listSubscriptions(body: IListSubscriptionsRequest): Promise<IResponse<IListSubscriptionsResponse>> {
+    return this.send('listSubscriptions', body)
+  }
+
+  public getSubscription(body: IGetSubscriptionRequest): Promise<IResponse<IListSubscriptionsResponse>> {
+    return this.send('getSubscription', body)
+  }
+
+  public closeSubscription(body: IGetSubscriptionRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('closeSubscription', body)
+  }
+
+  public offsetAdvance(body: IOffsetAdvanceRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('offsetAdvance', body)
+  }
+
+  public getPartner(body: ICommonPartnerRequest): Promise<IResponse<ICommonResponse>> {
+    return this.send('getPartner', body)
+  }
+
+  public getCommissions(body: IGetCommissionsRequest): Promise<IResponse<IGetCommissionsResponse>> {
+    return this.send('getPartner', body)
+  }
+
+  public getCurrencyCourses(body: ICommonPartnerRequest): Promise<IResponse<IGetCurrencyCoursesResponse>> {
+    return this.send('getPartner', body)
+  }
+
+  public getBinInfo(body: IGetBinInfoRequest): Promise<IResponse<IGetBinInfoResponse>> {
+    return this.send('getBinInfo', body)
+  }
+
+  // для физ. лиц (unitpay.money)
+  public massPayment(body: IMassPaymentRequest): Promise<IResponse<IMassPaymentResponse>> {
+    return this.send('massPayment', body)
+  }
+
+  public massPaymentStatus(body: IMassPaymentStatusRequest): Promise<IResponse<IMassPaymentResponse>> {
+    return this.send('massPaymentStatus', body)
   }
 }

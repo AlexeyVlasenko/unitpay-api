@@ -1,16 +1,21 @@
+  
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES2020",
     "module": "commonjs",
     "sourceMap": true,
     "removeComments": true,
     "outDir": "./dist",
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
     "declaration": true,
   },
   
   "include": [
-		"src/**/*"
+		"src/**/*.ts"
   ]
 }
