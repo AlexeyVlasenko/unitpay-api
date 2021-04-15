@@ -4,11 +4,11 @@ import UnitpayRequest, { IResponse } from './request'
 import { generateSignature } from './utils'
 
 export interface IConfig {
-  domain: string
+  domain?: string
   secretKey: string
 }
 
-type TGetPaymentStatus = 'success' | 'wait' | 'error' | 'error_pay' | 'error_check' | 'refund' | 'secure'
+type TPaymentStatus = 'success' | 'wait' | 'error' | 'error_pay' | 'error_check' | 'refund' | 'secure'
 
 type TPaymentCode = 'mc' | 'card' | 'webmoney' | 'webmoneyWmr' | 'yandex' | 'qiwi' | 'paypal' | 'applepay' | 'samsungpay' | 'googlepay'
 
@@ -26,7 +26,7 @@ export interface IGetPaymentResponse {
   date: string
   purse: string
   profit: number
-  status: TGetPaymentStatus
+  status: TPaymentStatus
   account: string
   payerSum: number
   orderSum: number
@@ -255,11 +255,11 @@ export default class Unitpay {
   }
 
   public getCommissions(body: IGetCommissionsRequest): Promise<IResponse<IGetCommissionsResponse>> {
-    return this.send('getPartner', body)
+    return this.send('getCommissions', body)
   }
 
   public getCurrencyCourses(body: ICommonPartnerRequest): Promise<IResponse<IGetCurrencyCoursesResponse>> {
-    return this.send('getPartner', body)
+    return this.send('getCurrencyCourses', body)
   }
 
   public getBinInfo(body: IGetBinInfoRequest): Promise<IResponse<IGetBinInfoResponse>> {
